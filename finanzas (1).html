@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>FINANZAS</title>
+
+<!-- ══ PWA / iOS META TAGS ══════════════════════════════════ -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FINANZAS">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="description" content="Control de finanzas personales y eliminación de deudas">
+
+<!-- ══ PWA MANIFEST (inline) ════════════════════════════════ -->
+<script>
+const MANIFEST = {
+  name: "FINANZAS — Control de Deudas",
+  short_name: "FINANZAS",
+  description: "Control de finanzas personales y eliminación de deudas",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#0a0a0f",
+  theme_color: "#0a0a0f",
+  orientation: "portrait-primary",
+  icons: [
+    { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%230a0a0f'/%3E%3Ctext x='256' y='320' font-size='280' text-anchor='middle' font-family='serif' fill='%23e8ff47'%3E%24%3C/text%3E%3C/svg%3E", sizes: "512x512", type: "image/svg+xml" }
+  ]
+};
+const blob = new Blob([JSON.stringify(MANIFEST)], {type:'application/json'});
+const manifestURL = URL.createObjectURL(blob);
+document.addEventListener('DOMContentLoaded', () => {
+  const link = document.createElement('link');
+  link.rel = 'manifest'; link.href = manifestURL;
+  document.head.appendChild(link);
+});
+</script>
+
+<!-- ══ APPLE TOUCH ICON (inline SVG → PNG via canvas) ═══════ -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 180;
+  const ctx = c.getContext('2d');
+  const r = 40;
+  ctx.beginPath();
+  ctx.moveTo(r,0); ctx.lineTo(180-r,0); ctx.quadraticCurveTo(180,0,180,r);
+  ctx.lineTo(180,180-r); ctx.quadraticCurveTo(180,180,180-r,180);
+  ctx.lineTo(r,180); ctx.quadraticCurveTo(0,180,0,180-r);
+  ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0);
+  ctx.fillStyle='#0a0a0f'; ctx.fill();
+  ctx.fillStyle='#e8ff47'; ctx.font='bold 110px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('$',90,95);
+  const link = document.createElement('link');
+  link.rel = 'apple-touch-icon'; link.href = c.toDataURL();
+  document.head.appendChild(link);
+});
+</script>
+
+<!-- ══ SERVICE WORKER (offline cache) ═══════════════════════ -->
+<script>
+if('serviceWorker' in navigator){
+  const SW_CODE = `
+const CACHE='finanzas-v1';
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './finanzas.html'])));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./'))));
+});
+`;
+  const swBlob = new Blob([SW_CODE], {type:'text/javascript'});
+  const swURL = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL).catch(()=>{});
+}
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--border:#2a2a3a;
+  --accent:#e8ff47;--accent2:#ff4747;--accent3:#47b8ff;
+  --text:#f0f0f8;--muted:#6b6b8a;--green:#47ffb8;--orange:#ff9447;--purple:#b847ff;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{height:100%;}
+body{
+  background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;
+  min-height:100%;overflow-x:hidden;
+  padding-top:var(--safe-top);
+  padding-bottom:var(--safe-bottom);
+}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(232,255,71,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(232,255,71,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;max-width:1160px;margin:0 auto;padding:24px 16px 100px;}
+
+/* ── HEADER ── */
+header{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:28px;gap:16px;flex-wrap:wrap;}
+.logo-area h1{font-size:2.2rem;font-weight:800;letter-spacing:-0.04em;line-height:1;}
+.logo-area h1 span{color:var(--accent);}
+.logo-area p{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);margin-top:5px;letter-spacing:0.1em;text-transform:uppercase;}
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+.live-clock-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px;text-align:right;min-width:190px;}
+.lc-time{font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:500;letter-spacing:0.04em;color:var(--accent);line-height:1;}
+.lc-date{font-family:'DM Mono',monospace;font-size:0.67rem;color:var(--text);margin-top:3px;letter-spacing:0.04em;}
+.lc-day{font-family:'DM Mono',monospace;font-size:0.59rem;color:var(--muted);margin-top:2px;letter-spacing:0.08em;text-transform:uppercase;}
+.net-balance-pill{text-align:right;}
+.nb-label{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:2px;}
+.amount{font-size:1.7rem;font-weight:700;letter-spacing:-0.03em;transition:color 0.3s;}
+.amount.positive{color:var(--green);}
+.amount.negative{color:var(--accent2);}
+.amount.zero{color:var(--muted);}
+
+/* ── SAVE INDICATOR ── */
+.save-indicator{position:fixed;top:calc(var(--safe-top) + 12px);right:16px;z-index:9999;font-family:'DM Mono',monospace;font-size:0.65rem;padding:5px 12px;border-radius:20px;border:1px solid var(--green);background:rgba(71,255,184,0.12);color:var(--green);pointer-events:none;opacity:0;transition:opacity 0.3s;white-space:nowrap;}
+.save-indicator.show{opacity:1;}
+
+/* ── BACKUP BANNER ── */
+.backup-banner{background:rgba(232,255,71,0.06);border:1px solid rgba(232,255,71,0.2);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.bb-text{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);line-height:1.5;}
+.bb-text strong{color:var(--accent);}
+.bb-actions{display:flex;gap:8px;flex-shrink:0;}
+.bb-btn{font-family:'DM Mono',monospace;font-size:0.68rem;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;transition:all 0.2s;}
+.bb-btn:hover{border-color:var(--accent);color:var(--accent);}
+.bb-btn.danger:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:3px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:24px;flex-wrap:wrap;width:fit-content;}
+.tab-btn{padding:7px 14px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.02em;white-space:nowrap;}
+.tab-btn.active{background:var(--accent);color:#0a0a0f;}
+.tab-btn:not(.active):hover{color:var(--text);}
+.udot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent2);margin-left:4px;vertical-align:middle;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── SUMMARY GRID ── */
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.income::after{background:var(--green);}
+.stat-card.expenses::after{background:var(--accent2);}
+.stat-card.debt::after{background:var(--accent);}
+.stat-card.available::after{background:var(--accent3);}
+.stat-card.debt-payment::after{background:var(--orange);}
+.stat-card.months::after{background:var(--purple);}
+.stat-card.tax-save::after{background:#ff6bff;}
+.s-label{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:5px;}
+.s-value{font-size:1.35rem;font-weight:700;letter-spacing:-0.03em;}
+.stat-card.income .s-value{color:var(--green);}
+.stat-card.expenses .s-value{color:var(--accent2);}
+.stat-card.debt .s-value{color:var(--accent);}
+.stat-card.available .s-value{color:var(--accent3);}
+.stat-card.debt-payment .s-value{color:var(--orange);}
+.stat-card.months .s-value{color:var(--purple);}
+.stat-card.tax-save .s-value{color:#ff6bff;}
+.s-sub{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);margin-top:2px;}
+
+/* ── PANELS ── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:18px;}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--border);}
+.panel-header h2{font-size:0.84rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;}
+.panel-header .tag{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);}
+.panel-body{padding:16px 18px;}
+
+/* ── FORMS ── */
+.input-row{display:grid;gap:9px;margin-bottom:10px;}
+.cols-2{grid-template-columns:1fr 1fr;}
+.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.cols-4{grid-template-columns:1.5fr 1fr 1fr auto;}
+.cols-5{grid-template-columns:1.4fr 1fr 1fr 1fr auto;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
+.field input,.field select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.84rem;outline:none;transition:border-color 0.2s;width:100%;-webkit-appearance:none;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.field select option{background:var(--surface2);}
+.btn-add{background:var(--accent);color:#0a0a0f;padding:8px 14px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:0.76rem;font-weight:700;cursor:pointer;transition:all 0.2s;align-self:flex-end;white-space:nowrap;}
+.btn-add:hover{background:#fff;}
+.btn-full{background:var(--accent);color:#0a0a0f;width:100%;padding:10px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;margin-bottom:4px;}
+.btn-full:hover{background:#fff;}
+
+/* ── LISTS ── */
+.list-container{margin-top:8px;}
+.list-item{display:flex;align-items:center;padding:9px 12px;background:var(--surface2);border-radius:8px;margin-bottom:5px;border:1px solid var(--border);animation:slideIn 0.2s ease;gap:7px;flex-wrap:wrap;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.item-name{font-weight:600;font-size:0.82rem;flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.item-amount{font-family:'DM Mono',monospace;font-size:0.82rem;font-weight:500;min-width:72px;text-align:right;}
+.income-color{color:var(--green);}
+.expense-color{color:var(--accent2);}
+.item-badge{font-family:'DM Mono',monospace;font-size:0.56rem;padding:2px 6px;border-radius:20px;background:var(--surface);color:var(--muted);border:1px solid var(--border);white-space:nowrap;}
+.item-ts{font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);white-space:nowrap;}
+.del-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:0.88rem;transition:color 0.2s;padding:2px 4px;flex-shrink:0;}
+.del-btn:hover{color:var(--accent2);}
+.empty-state{text-align:center;padding:24px;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);border:1px dashed var(--border);border-radius:8px;}
+
+/* ── DEBT CARDS ── */
+.debt-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:9px;animation:slideIn 0.2s ease;}
+.debt-card-top{display:flex;align-items:center;gap:7px;margin-bottom:8px;flex-wrap:wrap;}
+.debt-name{font-weight:700;font-size:0.86rem;flex:1;min-width:100px;}
+.debt-ts{font-family:'DM Mono',monospace;font-size:0.53rem;color:var(--muted);}
+.badge{font-family:'DM Mono',monospace;font-size:0.57rem;padding:2px 7px;border-radius:20px;border:1px solid;}
+.badge-tarjeta{color:var(--orange);border-color:var(--orange);background:rgba(255,148,71,0.08);}
+.badge-prestamo{color:var(--accent3);border-color:var(--accent3);background:rgba(71,184,255,0.08);}
+.badge-hipoteca{color:var(--purple);border-color:var(--purple);background:rgba(184,71,255,0.08);}
+.badge-auto{color:var(--green);border-color:var(--green);background:rgba(71,255,184,0.08);}
+.badge-impuesto{color:#ff6bff;border-color:#ff6bff;background:rgba(255,107,255,0.08);}
+.badge-otro{color:var(--muted);border-color:var(--border);background:rgba(107,107,138,0.08);}
+.date-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
+.dpill{display:flex;align-items:center;gap:3px;font-family:'DM Mono',monospace;font-size:0.61rem;padding:3px 7px;border-radius:6px;border:1px solid;}
+.dpill.safe{color:var(--green);border-color:rgba(71,255,184,0.3);background:rgba(71,255,184,0.05);}
+.dpill.warning{color:var(--orange);border-color:rgba(255,148,71,0.3);background:rgba(255,148,71,0.07);}
+.dpill.danger{color:var(--accent2);border-color:rgba(255,71,71,0.3);background:rgba(255,71,71,0.07);}
+.dpill.neutral{color:var(--muted);border-color:var(--border);}
+.dpill.corte{color:var(--accent3);border-color:rgba(71,184,255,0.3);background:rgba(71,184,255,0.05);}
+.dpill.tax{color:#ff6bff;border-color:rgba(255,107,255,0.3);background:rgba(255,107,255,0.05);}
+.debt-nums{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:8px;}
+.dn{text-align:center;}
+.dnl{font-family:'DM Mono',monospace;font-size:0.51rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:1px;}
+.dnv{font-family:'DM Mono',monospace;font-size:0.78rem;font-weight:500;}
+.progress-bar-wrap{height:4px;background:var(--surface);border-radius:10px;overflow:hidden;margin-bottom:5px;}
+.progress-bar-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width 0.5s cubic-bezier(0.16,1,0.3,1);}
+.debt-card-footer{display:flex;align-items:center;justify-content:space-between;}
+.dpct{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);}
+
+/* ── STRATEGY ── */
+.strategy-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.strat-title{font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.strat-title .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.strat-item{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);}
+.strat-item:last-child{border-bottom:none;}
+.snum{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:0.68rem;font-weight:500;flex-shrink:0;background:var(--surface);border:1px solid var(--border);}
+.snum.first{background:var(--accent);color:#0a0a0f;border-color:var(--accent);font-weight:700;}
+.sinfo{flex:1;}
+.sinfo .sn{font-size:0.8rem;font-weight:600;margin-bottom:1px;}
+.sinfo .sd{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);}
+.samt{font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--accent);font-weight:500;text-align:right;}
+.recom-box{border:1px solid var(--accent);background:rgba(232,255,71,0.04);border-radius:10px;padding:13px 15px;}
+.recom-box .rt{font-size:0.7rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+.recom-box .rb{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text);line-height:1.75;}
+.recom-box .rb strong{color:var(--accent);}
+.stog{display:flex;gap:7px;margin-bottom:14px;}
+.sbtn{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-align:center;}
+.sbtn.active{background:var(--surface2);border-color:var(--accent);color:var(--accent);}
+.sbtn:hover:not(.active){color:var(--text);border-color:var(--text);}
+
+/* ── IMPUESTOS ── */
+.tax-hint{font-family:'DM Mono',monospace;font-size:0.66rem;color:var(--muted);line-height:1.6;margin-bottom:10px;padding:9px 11px;background:rgba(255,107,255,0.05);border:1px solid rgba(255,107,255,0.2);border-radius:8px;}
+.tax-hint strong{color:#ff6bff;}
+.tax-rec-card{background:rgba(255,107,255,0.05);border:1px solid rgba(255,107,255,0.2);border-radius:10px;padding:13px 15px;margin-bottom:8px;}
+.tax-rec-title{font-size:0.73rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:#ff6bff;margin-bottom:8px;}
+.tax-rec-row{display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:0.7rem;margin-bottom:4px;padding:3px 0;border-bottom:1px solid rgba(255,107,255,0.1);}
+.tax-rec-row:last-of-type{border-bottom:none;}
+.trk{color:var(--muted);}
+.trv{color:#ff6bff;font-weight:500;}
+.tax-total-save{background:rgba(255,107,255,0.1);border:1px solid rgba(255,107,255,0.3);border-radius:8px;padding:10px 13px;display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+.ttl{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+.ttv{font-size:1.15rem;font-weight:700;color:#ff6bff;font-family:'DM Mono',monospace;}
+.tsi-progress{height:4px;background:var(--surface);border-radius:10px;overflow:hidden;margin-top:6px;}
+.tsi-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#b847ff,#ff6bff);}
+
+/* ── PAGAR HOY ── */
+.priority-card{border-radius:12px;padding:14px 16px;margin-bottom:9px;border:1px solid;animation:slideIn 0.26s ease;position:relative;overflow:hidden;}
+.priority-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;}
+.p-critical{border-color:rgba(255,71,71,0.35);background:rgba(255,71,71,0.06);}
+.p-critical::before{background:var(--accent2);}
+.p-warning{border-color:rgba(255,148,71,0.35);background:rgba(255,148,71,0.06);}
+.p-warning::before{background:var(--orange);}
+.p-ok{border-color:rgba(71,255,184,0.2);background:rgba(71,255,184,0.04);}
+.p-ok::before{background:var(--green);}
+.p-info{border-color:rgba(71,184,255,0.2);background:rgba(71,184,255,0.04);}
+.p-info::before{background:var(--accent3);}
+.p-tax{border-color:rgba(255,107,255,0.3);background:rgba(255,107,255,0.05);}
+.p-tax::before{background:#ff6bff;}
+.pc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:9px;}
+.pc-name{font-size:0.95rem;font-weight:700;}
+.pc-badge{font-family:'DM Mono',monospace;font-size:0.58rem;padding:3px 8px;border-radius:20px;border:1px solid;white-space:nowrap;}
+.pc-badge.critical{color:var(--accent2);border-color:rgba(255,71,71,0.4);background:rgba(255,71,71,0.1);}
+.pc-badge.warning{color:var(--orange);border-color:rgba(255,148,71,0.4);background:rgba(255,148,71,0.1);}
+.pc-badge.ok{color:var(--green);border-color:rgba(71,255,184,0.3);background:rgba(71,255,184,0.06);}
+.pc-badge.corte-b{color:var(--accent3);border-color:rgba(71,184,255,0.3);background:rgba(71,184,255,0.06);}
+.pc-badge.tax-b{color:#ff6bff;border-color:rgba(255,107,255,0.35);background:rgba(255,107,255,0.08);}
+.pc-body{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text);line-height:1.8;}
+.pc-body strong{color:var(--accent);}
+.hi-r{color:var(--accent2);font-weight:500;}
+.hi-o{color:var(--orange);font-weight:500;}
+.hi-g{color:var(--green);font-weight:500;}
+.hi-b{color:var(--accent3);font-weight:500;}
+.hi-p{color:#ff6bff;font-weight:500;}
+.pc-footer{margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.psl{font-family:'DM Mono',monospace;font-size:0.53rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1px;}
+.psv{font-family:'DM Mono',monospace;font-size:0.8rem;font-weight:500;}
+.divider{display:flex;align-items:center;gap:9px;margin:18px 0 11px;}
+.divider span{font-family:'DM Mono',monospace;font-size:0.59rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.mini-table{width:100%;border-collapse:collapse;}
+.mini-table th{font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;padding:5px 8px;text-align:left;border-bottom:1px solid var(--border);}
+.mini-table td{font-family:'DM Mono',monospace;font-size:0.71rem;padding:7px 8px;border-bottom:1px solid rgba(42,42,58,0.5);}
+.mini-table tr:last-child td{border-bottom:none;}
+
+/* ── MODAL RESTORE ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:100%;}
+.modal h3{font-size:1rem;font-weight:700;margin-bottom:8px;}
+.modal p{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);line-height:1.6;margin-bottom:18px;}
+.modal-btns{display:flex;gap:10px;}
+.modal-btn{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.modal-btn.primary{background:var(--accent);color:#0a0a0f;border-color:var(--accent);}
+.modal-btn.secondary{background:transparent;color:var(--text);}
+.modal-btn:hover{opacity:0.85;}
+
+@media(max-width:640px){
+  .summary-grid{grid-template-columns:1fr 1fr;}
+  .cols-5{grid-template-columns:1fr 1fr;}
+  .cols-4{grid-template-columns:1fr 1fr;}
+  .debt-nums{grid-template-columns:repeat(3,1fr);}
+  .logo-area h1{font-size:1.8rem;}
+  .live-clock-card{min-width:unset;}
+}
+</style>
+</head>
+<body>
+
+<div class="save-indicator" id="save-indicator">✓ Guardado</div>
+
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="logo-area">
+    <h1>FINANZ<span>AS</span></h1>
+    <p>Control personal · Eliminación de deudas</p>
+  </div>
+  <div class="header-right">
+    <div class="live-clock-card">
+      <div class="lc-time" id="lc-time">00:00:00</div>
+      <div class="lc-date" id="lc-date">—</div>
+      <div class="lc-day" id="lc-day">—</div>
+    </div>
+    <div class="net-balance-pill">
+      <div class="nb-label">Flujo libre mensual</div>
+      <div class="amount zero" id="net-balance">RD$0</div>
+    </div>
+  </div>
+</header>
+
+<!-- BACKUP BANNER -->
+<div class="backup-banner">
+  <div class="bb-text">
+    <strong>💾 Datos guardados localmente</strong> en este dispositivo.<br>
+    Exporta un respaldo regularmente para no perder tus datos.
+    <span id="last-save-text" style="display:inline;"></span>
+  </div>
+  <div class="bb-actions">
+    <button class="bb-btn" onclick="exportBackup()">⬇ Exportar</button>
+    <button class="bb-btn" onclick="document.getElementById('import-file').click()">⬆ Importar</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(event)">
+    <button class="bb-btn danger" onclick="confirmClearData()">🗑 Borrar todo</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('ingresos',this)">Ingresos</button>
+  <button class="tab-btn" onclick="switchTab('egresos',this)">Egresos</button>
+  <button class="tab-btn" onclick="switchTab('deudas',this)">Deudas</button>
+  <button class="tab-btn" onclick="switchTab('impuestos',this)">Impuestos <span class="udot" id="tax-dot" style="display:none"></span></button>
+  <button class="tab-btn" onclick="switchTab('pagarhoy',this)">Pagar Hoy <span class="udot" id="urgency-dot" style="display:none"></span></button>
+  <button class="tab-btn" onclick="switchTab('estrategia',this)">Estrategia</button>
+</div>
+
+<!-- ════ DASHBOARD ════ -->
+<div id="tab-dashboard" class="section active">
+  <div class="summary-grid">
+    <div class="stat-card income"><div class="s-label">Ingresos / mes</div><div class="s-value" id="dash-income">RD$0</div><div class="s-sub" id="dash-ic">0 fuentes</div></div>
+    <div class="stat-card expenses"><div class="s-label">Egresos / mes</div><div class="s-value" id="dash-expenses">RD$0</div><div class="s-sub" id="dash-ec">0 gastos</div></div>
+    <div class="stat-card debt"><div class="s-label">Deuda total</div><div class="s-value" id="dash-total-debt">RD$0</div><div class="s-sub" id="dash-dc">0 deudas</div></div>
+    <div class="stat-card available"><div class="s-label">Disponible libre</div><div class="s-value" id="dash-available">RD$0</div><div class="s-sub">Tras egresos y mínimos</div></div>
+    <div class="stat-card debt-payment"><div class="s-label">Pagos mínimos / mes</div><div class="s-value" id="dash-mins">RD$0</div><div class="s-sub" id="dash-dti">DTI: 0%</div></div>
+    <div class="stat-card tax-save"><div class="s-label">Reserva impuestos / mes</div><div class="s-value" id="dash-tax-save">RD$0</div><div class="s-sub" id="dash-tax-sub">0 obligaciones</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div class="panel"><div class="panel-header"><h2>Top Ingresos</h2></div><div class="panel-body" id="dash-income-list"><div class="empty-state">Sin ingresos</div></div></div>
+    <div class="panel"><div class="panel-header"><h2>Top Egresos</h2></div><div class="panel-body" id="dash-expense-list"><div class="empty-state">Sin egresos</div></div></div>
+  </div>
+</div>
+
+<!-- ════ INGRESOS ════ -->
+<div id="tab-ingresos" class="section">
+  <div class="panel">
+    <div class="panel-header"><h2>Agregar Ingreso</h2><span class="tag">Conversión automática a mensual</span></div>
+    <div class="panel-body">
+      <div class="input-row cols-3">
+        <div class="field"><label>Fuente</label><input type="text" id="inc-name" placeholder="Ej: Salario, Freelance..."></div>
+        <div class="field"><label>Monto</label><input type="number" id="inc-amount" placeholder="0.00" min="0" inputmode="decimal"></div>
+        <div class="field"><label>Frecuencia</label><select id="inc-freq"><option value="mensual">Mensual</option><option value="quincenal">Quincenal</option><option value="semanal">Semanal</option><option value="anual">Anual</option></select></div>
+      </div>
+      <button class="btn-full" onclick="addIncome()">+ Agregar Ingreso</button>
+      <div class="list-container" id="income-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ EGRESOS ════ -->
+<div id="tab-egresos" class="section">
+  <div class="panel">
+    <div class="panel-header"><h2>Agregar Egreso</h2><span class="tag">Mensual</span></div>
+    <div class="panel-body">
+      <div class="input-row cols-4">
+        <div class="field"><label>Descripción</label><input type="text" id="exp-name" placeholder="Ej: Alquiler, Comida..."></div>
+        <div class="field"><label>Monto</label><input type="number" id="exp-amount" placeholder="0.00" min="0" inputmode="decimal"></div>
+        <div class="field"><label>Categoría</label><select id="exp-cat"><option value="vivienda">Vivienda</option><option value="alimentacion">Alimentación</option><option value="transporte">Transporte</option><option value="salud">Salud</option><option value="educacion">Educación</option><option value="entretenimiento">Entretenimiento</option><option value="servicios">Servicios</option><option value="otro">Otro</option></select></div>
+        <button class="btn-add" onclick="addExpense()">+ Agregar</button>
+      </div>
+      <div class="list-container" id="expense-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ DEUDAS ════ -->
+<div id="tab-deudas" class="section">
+  <div class="panel">
+    <div class="panel-header"><h2>Registrar Deuda / Tarjeta</h2><span class="tag">Con fechas de ciclo</span></div>
+    <div class="panel-body">
+      <div class="input-row cols-5">
+        <div class="field"><label>Nombre / Entidad</label><input type="text" id="debt-name" placeholder="Ej: Tarjeta BHD..."></div>
+        <div class="field"><label>Saldo actual</label><input type="number" id="debt-balance" placeholder="0.00" min="0" inputmode="decimal"></div>
+        <div class="field"><label>Tasa anual (%)</label><input type="number" id="debt-rate" placeholder="36.5" min="0" step="0.1" inputmode="decimal"></div>
+        <div class="field"><label>Pago mínimo/mes</label><input type="number" id="debt-min" placeholder="0.00" min="0" inputmode="decimal"></div>
+        <div class="field"><label>Tipo</label><select id="debt-type"><option value="tarjeta">Tarjeta</option><option value="prestamo">Préstamo</option><option value="hipoteca">Hipoteca</option><option value="auto">Auto</option><option value="otro">Otro</option></select></div>
+      </div>
+      <div style="background:rgba(71,184,255,0.05);border:1px solid rgba(71,184,255,0.2);border-radius:10px;padding:11px 13px;margin-bottom:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--accent3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">📅 Fechas del ciclo</div>
+        <div class="input-row cols-3" style="margin-bottom:0;">
+          <div class="field"><label>Día de corte</label><input type="number" id="debt-cutday" placeholder="Ej: 15" min="1" max="31" inputmode="numeric"></div>
+          <div class="field"><label>Último día de pago</label><input type="number" id="debt-dueday" placeholder="Ej: 5" min="1" max="31" inputmode="numeric"></div>
+          <div class="field"><label>Límite de crédito</label><input type="number" id="debt-limit" placeholder="Opcional" min="0" inputmode="decimal"></div>
+        </div>
+      </div>
+      <button class="btn-full" onclick="addDebt()">+ Registrar Deuda</button>
+      <div class="list-container" id="debt-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ IMPUESTOS ════ -->
+<div id="tab-impuestos" class="section">
+  <div class="panel">
+    <div class="panel-header"><h2>Obligaciones Fiscales / Anuales</h2><span class="tag">Ahorro mensual automático</span></div>
+    <div class="panel-body">
+      <div class="tax-hint">Registra impuestos y pagos anuales (DGII, ISR, patentes, seguros, etc.). La app calcula cuánto debes <strong>apartar cada mes</strong> para llegar sin estrés al vencimiento.</div>
+      <div class="input-row cols-5">
+        <div class="field"><label>Nombre</label><input type="text" id="tax-name" placeholder="Ej: ITBIS, ISR, Patente..."></div>
+        <div class="field"><label>Monto total</label><input type="number" id="tax-amount" placeholder="0.00" min="0" inputmode="decimal"></div>
+        <div class="field"><label>Mes de vencimiento</label><select id="tax-month"><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select></div>
+        <div class="field"><label>Día del mes</label><input type="number" id="tax-day" placeholder="30" min="1" max="31" inputmode="numeric"></div>
+        <button class="btn-add" onclick="addTax()">+ Agregar</button>
+      </div>
+      <div class="list-container" id="tax-list"></div>
+      <div id="tax-summary-block" style="display:none;margin-top:18px;">
+        <div class="divider"><span>📊 Plan de ahorro mensual</span></div>
+        <div id="tax-savings-detail"></div>
+        <div class="tax-total-save">
+          <div><div class="ttl">Total a reservar cada mes</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);margin-top:2px;">Para todas tus obligaciones fiscales</div></div>
+          <div class="ttv" id="tax-total-monthly">RD$0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PAGAR HOY ════ -->
+<div id="tab-pagarhoy" class="section">
+  <div class="panel">
+    <div class="panel-header"><h2>¿Qué debo pagar hoy?</h2><span class="tag" id="today-tag">—</span></div>
+    <div class="panel-body">
+      <div style="margin-bottom:18px;">
+        <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">Análisis en tiempo real</div>
+        <div style="font-size:0.88rem;font-weight:600;">Prioridades basadas en la fecha de hoy</div>
+      </div>
+      <div id="pagarhoy-content"><div class="empty-state">Registra deudas con fechas para ver el análisis</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ ESTRATEGIA ════ -->
+<div id="tab-estrategia" class="section">
+  <div class="panel">
+    <div class="panel-header"><h2>Plan de Eliminación</h2><span class="tag" id="strat-tag">Extra: RD$0/mes</span></div>
+    <div class="panel-body">
+      <div class="stog">
+        <button class="sbtn active" id="btn-snowball" onclick="setStrategy('snowball')">❄️ Snowball<br><span style="font-size:0.6rem;font-weight:400;color:var(--muted)">Menor saldo primero</span></button>
+        <button class="sbtn" id="btn-avalanche" onclick="setStrategy('avalanche')">🌊 Avalanche<br><span style="font-size:0.6rem;font-weight:400;color:var(--muted)">Mayor interés primero</span></button>
+      </div>
+      <div class="field" style="max-width:240px;margin-bottom:16px;">
+        <label>Pago extra mensual disponible</label>
+        <input type="number" id="extra-payment" placeholder="0.00" min="0" inputmode="decimal" oninput="renderStrategy()">
+      </div>
+      <div id="strategy-content"><div class="empty-state">Agrega deudas para ver tu plan de ataque</div></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- MODAL CONFIRM CLEAR -->
+<div class="modal-overlay" id="clear-modal" style="display:none;">
+  <div class="modal">
+    <h3>⚠️ Borrar todos los datos</h3>
+    <p>Esta acción eliminará permanentemente todos tus ingresos, egresos, deudas e impuestos registrados. <strong style="color:var(--accent2)">No se puede deshacer.</strong><br><br>¿Exportaste un respaldo antes de continuar?</p>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="document.getElementById('clear-modal').style.display='none'">Cancelar</button>
+      <button class="modal-btn primary" style="background:var(--accent2);border-color:var(--accent2);" onclick="clearAllData()">Sí, borrar todo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONSTANTS & STATE
+// ═══════════════════════════════════════════════════════
+const CUR='RD$';
+const STORE_KEY='finanzas_data_v1';
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+
+let incomes=[], expenses=[], debts=[], taxes=[];
+let currentStrategy='snowball';
+
+// ═══════════════════════════════════════════════════════
+//  LOCALSTORAGE — LOAD & SAVE
+// ═══════════════════════════════════════════════════════
+function saveData(){
+  try{
+    const payload={
+      incomes, expenses, debts, taxes,
+      currentStrategy,
+      savedAt: new Date().toISOString(),
+      version: 1
+    };
+    localStorage.setItem(STORE_KEY, JSON.stringify(payload));
+    flashSaveIndicator();
+    updateLastSaveText(payload.savedAt);
+  }catch(e){ console.warn('localStorage save failed:',e); }
+}
+
+function loadData(){
+  try{
+    const raw=localStorage.getItem(STORE_KEY);
+    if(!raw) return;
+    const d=JSON.parse(raw);
+    incomes   = d.incomes   || [];
+    expenses  = d.expenses  || [];
+    debts     = d.debts     || [];
+    taxes     = d.taxes     || [];
+    currentStrategy = d.currentStrategy || 'snowball';
+    if(d.savedAt) updateLastSaveText(d.savedAt);
+  }catch(e){ console.warn('localStorage load failed:',e); }
+}
+
+function flashSaveIndicator(){
+  const el=document.getElementById('save-indicator');
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),1800);
+}
+
+function updateLastSaveText(iso){
+  const el=document.getElementById('last-save-text');
+  if(!el) return;
+  try{
+    const d=new Date(iso);
+    el.textContent=` · Último guardado: ${d.getDate()} ${MESES[d.getMonth()]} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }catch(e){}
+}
+
+// ── EXPORT backup JSON ─────────────────────
+function exportBackup(){
+  const payload={incomes,expenses,debts,taxes,currentStrategy,exportedAt:new Date().toISOString(),version:1};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const d=new Date();
+  a.href=url;
+  a.download=`finanzas_backup_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── IMPORT backup JSON ─────────────────────
+function importBackup(evt){
+  const file=evt.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!d.version) throw new Error('Formato inválido');
+      incomes   = d.incomes   || [];
+      expenses  = d.expenses  || [];
+      debts     = d.debts     || [];
+      taxes     = d.taxes     || [];
+      currentStrategy = d.currentStrategy || 'snowball';
+      saveData();
+      renderAll();
+      alert('✅ Respaldo importado correctamente.');
+    }catch(err){ alert('⚠️ Error al importar: ' + err.message); }
+  };
+  reader.readAsText(file);
+  evt.target.value='';
+}
+
+// ── CLEAR all data ─────────────────────────
+function confirmClearData(){ document.getElementById('clear-modal').style.display='flex'; }
+function clearAllData(){
+  incomes=[]; expenses=[]; debts=[]; taxes=[];
+  localStorage.removeItem(STORE_KEY);
+  document.getElementById('clear-modal').style.display='none';
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════════════════════
+function updateClock(){
+  const n=new Date();
+  const hh=String(n.getHours()).padStart(2,'0');
+  const mm=String(n.getMinutes()).padStart(2,'0');
+  const ss=String(n.getSeconds()).padStart(2,'0');
+  document.getElementById('lc-time').textContent=`${hh}:${mm}:${ss}`;
+  document.getElementById('lc-date').textContent=`${n.getDate()} de ${MESES[n.getMonth()]} ${n.getFullYear()}`;
+  document.getElementById('lc-day').textContent=`${DIAS[n.getDay()]} · día ${n.getDate()} del mes`;
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+function fmt(n){return CUR+Number(n).toLocaleString('es-DO',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function fmtPct(n){return Number(n).toFixed(1)+'%';}
+function toMonthly(a,f){return f==='quincenal'?a*2:f==='semanal'?a*4.33:f==='anual'?a/12:a;}
+function tsNow(){const n=new Date();return`${n.getDate()}/${n.getMonth()+1}/${n.getFullYear()} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;}
+function daysUntilDay(d){const n=new Date(),cur=n.getDate(),dim=new Date(n.getFullYear(),n.getMonth()+1,0).getDate();return d>=cur?d-cur:(dim-cur)+d;}
+function daysUntilDate(month,day){const n=new Date();let t=new Date(n.getFullYear(),month-1,day);if(t<n)t=new Date(n.getFullYear()+1,month-1,day);return Math.ceil((t-n)/(864e5));}
+function monthsUntilDate(month,day){const n=new Date();let t=new Date(n.getFullYear(),month-1,day);if(t<=n)t=new Date(n.getFullYear()+1,month-1,day);return Math.max(1,Math.ceil((t-n)/(864e5*30.44)));}
+function divider(t){return`<div class="divider"><span>${t}</span></div>`;}
+
+function switchTab(tab,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  btn.classList.add('active');
+  if(tab==='estrategia') renderStrategy();
+  if(tab==='dashboard')  renderDashboard();
+  if(tab==='pagarhoy')   renderPagarHoy();
+  if(tab==='impuestos')  renderTaxSummary();
+}
+
+// ═══════════════════════════════════════════════════════
+//  INGRESOS
+// ═══════════════════════════════════════════════════════
+function addIncome(){
+  const name=document.getElementById('inc-name').value.trim();
+  const amount=parseFloat(document.getElementById('inc-amount').value);
+  const freq=document.getElementById('inc-freq').value;
+  if(!name||!amount||amount<=0) return alert('Completa nombre y monto.');
+  incomes.push({id:Date.now(),name,amount,freq,monthly:toMonthly(amount,freq),ts:tsNow()});
+  document.getElementById('inc-name').value='';
+  document.getElementById('inc-amount').value='';
+  saveData(); renderIncomeList(); updateAll();
+}
+function renderIncomeList(){
+  const c=document.getElementById('income-list');
+  if(!incomes.length){c.innerHTML='<div class="empty-state">Sin ingresos registrados</div>';return;}
+  c.innerHTML=incomes.map(i=>`<div class="list-item"><span class="item-name">${i.name}</span><span class="item-badge">${i.freq}</span><span class="item-ts">📅 ${i.ts}</span><span class="item-amount income-color">${fmt(i.monthly)}/mes</span><button class="del-btn" onclick="removeIncome(${i.id})">✕</button></div>`).join('');
+}
+function removeIncome(id){incomes=incomes.filter(i=>i.id!==id);saveData();renderIncomeList();updateAll();}
+
+// ═══════════════════════════════════════════════════════
+//  EGRESOS
+// ═══════════════════════════════════════════════════════
+function addExpense(){
+  const name=document.getElementById('exp-name').value.trim();
+  const amount=parseFloat(document.getElementById('exp-amount').value);
+  const cat=document.getElementById('exp-cat').value;
+  if(!name||!amount||amount<=0) return alert('Completa nombre y monto.');
+  expenses.push({id:Date.now(),name,amount,cat,ts:tsNow()});
+  document.getElementById('exp-name').value='';
+  document.getElementById('exp-amount').value='';
+  saveData(); renderExpenseList(); updateAll();
+}
+function renderExpenseList(){
+  const c=document.getElementById('expense-list');
+  if(!expenses.length){c.innerHTML='<div class="empty-state">Sin egresos registrados</div>';return;}
+  c.innerHTML=expenses.map(e=>`<div class="list-item"><span class="item-name">${e.name}</span><span class="item-badge">${e.cat}</span><span class="item-ts">📅 ${e.ts}</span><span class="item-amount expense-color">${fmt(e.amount)}/mes</span><button class="del-btn" onclick="removeExpense(${e.id})">✕</button></div>`).join('');
+}
+function removeExpense(id){expenses=expenses.filter(e=>e.id!==id);saveData();renderExpenseList();updateAll();}
+
+// ═══════════════════════════════════════════════════════
+//  DEUDAS
+// ═══════════════════════════════════════════════════════
+function addDebt(){
+  const name=document.getElementById('debt-name').value.trim();
+  const balance=parseFloat(document.getElementById('debt-balance').value);
+  const rate=parseFloat(document.getElementById('debt-rate').value)||0;
+  const minPay=parseFloat(document.getElementById('debt-min').value)||0;
+  const type=document.getElementById('debt-type').value;
+  const cutDay=parseInt(document.getElementById('debt-cutday').value)||null;
+  const dueDay=parseInt(document.getElementById('debt-dueday').value)||null;
+  const limit=parseFloat(document.getElementById('debt-limit').value)||null;
+  if(!name||!balance||balance<=0) return alert('Completa nombre y saldo.');
+  debts.push({id:Date.now(),name,balance,rate,minPay,type,cutDay,dueDay,limit,ts:tsNow()});
+  ['debt-name','debt-balance','debt-rate','debt-min','debt-cutday','debt-dueday','debt-limit'].forEach(id=>document.getElementById(id).value='');
+  saveData(); renderDebtList(); updateAll();
+}
+function renderDebtList(){
+  const c=document.getElementById('debt-list');
+  if(!debts.length){c.innerHTML='<div class="empty-state">Sin deudas registradas</div>';return;}
+  const tot=debts.reduce((s,d)=>s+d.balance,0);
+  c.innerHTML=debts.map(d=>{
+    const pct=tot>0?(d.balance/tot)*100:0;
+    const mi=(d.rate/100/12)*d.balance;
+    const util=d.limit?(d.balance/d.limit*100):null;
+    let pills='';
+    if(d.cutDay){const dc=daysUntilDay(d.cutDay);pills+=`<div class="dpill ${dc<=2?'warning':'corte'}">✂️ Corte día ${d.cutDay} · en ${dc}d</div>`;}
+    if(d.dueDay){const dp=daysUntilDay(d.dueDay);const cl=dp===0?'danger':dp<=3?'danger':dp<=7?'warning':'safe';const ic=dp===0?'🚨':dp<=3?'⚠️':dp<=7?'⏰':'📅';pills+=`<div class="dpill ${cl}">${ic} Pago día ${d.dueDay} · en ${dp}d</div>`;}
+    if(!d.cutDay&&!d.dueDay)pills='<div class="dpill neutral">📋 Sin fechas de ciclo</div>';
+    return `<div class="debt-card">
+      <div class="debt-card-top"><span class="debt-name">${d.name}</span><span class="badge badge-${d.type}">${d.type}</span><span class="debt-ts">📅 ${d.ts}</span><button class="del-btn" onclick="removeDebt(${d.id})">✕</button></div>
+      <div class="date-pills">${pills}</div>
+      <div class="debt-nums">
+        <div class="dn"><div class="dnl">Saldo</div><div class="dnv" style="color:var(--accent)">${fmt(d.balance)}</div></div>
+        <div class="dn"><div class="dnl">Tasa anual</div><div class="dnv" style="color:var(--accent2)">${fmtPct(d.rate)}</div></div>
+        <div class="dn"><div class="dnl">Tasa mensual</div><div class="dnv" style="color:var(--accent2)">${fmtPct(d.rate/12)}</div></div>
+        <div class="dn"><div class="dnl">Interés/mes</div><div class="dnv" style="color:var(--accent2)">${fmt(mi)}</div></div>
+        <div class="dn"><div class="dnl">Pago mínimo</div><div class="dnv">${fmt(d.minPay)}</div></div>
+        <div class="dn"><div class="dnl">${d.limit?'Utilización':'Límite'}</div><div class="dnv" style="color:${util>70?'var(--accent2)':'var(--muted)'}">${d.limit?util.toFixed(0)+'%':'—'}</div></div>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+      <div class="debt-card-footer"><span class="dpct">${fmtPct(pct)} del total</span>${d.limit?`<span class="dpct">Límite: ${fmt(d.limit)}</span>`:''}</div>
+    </div>`;
+  }).join('');
+}
+function removeDebt(id){debts=debts.filter(d=>d.id!==id);saveData();renderDebtList();updateAll();}
+
+// ═══════════════════════════════════════════════════════
+//  IMPUESTOS
+// ═══════════════════════════════════════════════════════
+function addTax(){
+  const name=document.getElementById('tax-name').value.trim();
+  const amount=parseFloat(document.getElementById('tax-amount').value);
+  const month=parseInt(document.getElementById('tax-month').value);
+  const day=parseInt(document.getElementById('tax-day').value)||30;
+  if(!name||!amount||amount<=0) return alert('Completa nombre y monto.');
+  taxes.push({id:Date.now(),name,amount,month,day,ts:tsNow()});
+  document.getElementById('tax-name').value='';
+  document.getElementById('tax-amount').value='';
+  saveData(); renderTaxList(); renderTaxSummary(); updateAll();
+}
+function renderTaxList(){
+  const c=document.getElementById('tax-list');
+  if(!taxes.length){c.innerHTML='<div class="empty-state">Sin obligaciones fiscales registradas</div>';return;}
+  c.innerHTML=taxes.map(t=>{
+    const months=monthsUntilDate(t.month,t.day);
+    const monthly=t.amount/months;
+    const days=daysUntilDate(t.month,t.day);
+    const uc=days<=30?'danger':days<=90?'warning':'safe';
+    return `<div class="list-item" style="flex-wrap:wrap;gap:5px;">
+      <span class="item-name">${t.name}</span>
+      <span class="badge badge-impuesto">fiscal</span>
+      <div class="dpill ${uc}" style="font-size:0.59rem;">📆 ${MESES[t.month-1]} ${t.day} · en ${days}d</div>
+      <span class="item-ts">📅 ${t.ts}</span>
+      <span class="item-amount" style="color:#ff6bff;">${fmt(t.amount)}</span>
+      <span class="item-badge" style="color:#ff6bff;border-color:rgba(255,107,255,0.4);">${fmt(monthly)}/mes</span>
+      <button class="del-btn" onclick="removeTax(${t.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+function removeTax(id){taxes=taxes.filter(t=>t.id!==id);saveData();renderTaxList();renderTaxSummary();updateAll();}
+function renderTaxSummary(){
+  const block=document.getElementById('tax-summary-block');
+  const detail=document.getElementById('tax-savings-detail');
+  if(!taxes.length){block.style.display='none';return;}
+  block.style.display='block';
+  let totalMonthly=0,rows='';
+  taxes.forEach(t=>{
+    const months=monthsUntilDate(t.month,t.day);
+    const days=daysUntilDate(t.month,t.day);
+    const monthly=t.amount/months;
+    totalMonthly+=monthly;
+    const urgColor=days<=30?'var(--accent2)':days<=90?'var(--orange)':'#ff6bff';
+    rows+=`<div class="tax-rec-card">
+      <div class="tax-rec-title">📋 ${t.name}</div>
+      <div class="tax-rec-row"><span class="trk">Total a pagar</span><span class="trv">${fmt(t.amount)}</span></div>
+      <div class="tax-rec-row"><span class="trk">Vencimiento</span><span class="trv">${t.day} de ${MESES[t.month-1]}</span></div>
+      <div class="tax-rec-row"><span class="trk">Días restantes</span><span style="color:${urgColor};font-weight:500;">${days} días</span></div>
+      <div class="tax-rec-row"><span class="trk">Meses para ahorrar</span><span class="trv">${months} meses</span></div>
+      <div class="tax-rec-row"><span class="trk">💡 Apartar cada mes</span><span style="font-size:0.95rem;color:#ff6bff;font-weight:700;">${fmt(monthly)}/mes</span></div>
+      <div class="tsi-progress"><div class="tsi-fill" style="width:${Math.min(100,((12-months)/12*100)).toFixed(0)}%"></div></div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.56rem;color:var(--muted);margin-top:3px;">Progreso del ciclo anual</div>
+    </div>`;
+  });
+  detail.innerHTML=rows;
+  document.getElementById('tax-total-monthly').textContent=fmt(totalMonthly);
+}
+function calcTaxMonthly(){return taxes.reduce((s,t)=>s+(t.amount/monthsUntilDate(t.month,t.day)),0);}
+
+// ═══════════════════════════════════════════════════════
+//  CALCULATIONS
+// ═══════════════════════════════════════════════════════
+function calcTotals(){
+  const totalIncome=incomes.reduce((s,i)=>s+i.monthly,0);
+  const totalExpenses=expenses.reduce((s,e)=>s+e.amount,0);
+  const totalDebt=debts.reduce((s,d)=>s+d.balance,0);
+  const totalMin=debts.reduce((s,d)=>s+d.minPay,0);
+  const taxMonthly=calcTaxMonthly();
+  const available=totalIncome-totalExpenses-totalMin-taxMonthly;
+  const dti=totalIncome>0?(totalMin/totalIncome)*100:0;
+  return{totalIncome,totalExpenses,totalDebt,totalMinPayments:totalMin,taxMonthly,available,dti};
+}
+function estimateMonthsSnowball(extra){
+  if(!debts.length) return null;
+  let sorted=[...debts].sort((a,b)=>a.balance-b.balance);
+  let bal=sorted.map(d=>d.balance),rates=sorted.map(d=>d.rate/100/12),mins=sorted.map(d=>d.minPay);
+  let paid=new Array(sorted.length).fill(null);let m=0;const MAX=600;
+  while(bal.some(b=>b>0)&&m<MAX){
+    m++;let pool=extra;
+    for(let i=0;i<bal.length;i++){
+      if(bal[i]<=0){pool+=mins[i];continue;}
+      bal[i]+=bal[i]*rates[i];
+      if(i===bal.findIndex(b=>b>0)){const p=Math.min(bal[i],mins[i]+pool);pool=Math.max(0,p>mins[i]?pool-(p-mins[i]):pool);bal[i]-=p;}
+      else{bal[i]-=Math.min(bal[i],mins[i]);}
+      if(bal[i]<=0){bal[i]=0;if(!paid[i])paid[i]=m;}
+    }
+  }
+  return m>=MAX?null:m;
+}
+
+// ═══════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDashboard(){
+  const{totalIncome,totalExpenses,totalDebt,totalMinPayments,taxMonthly,available,dti}=calcTotals();
+  document.getElementById('dash-income').textContent=fmt(totalIncome);
+  document.getElementById('dash-ic').textContent=incomes.length+' fuente'+(incomes.length!==1?'s':'');
+  document.getElementById('dash-expenses').textContent=fmt(totalExpenses);
+  document.getElementById('dash-ec').textContent=expenses.length+' gasto'+(expenses.length!==1?'s':'');
+  document.getElementById('dash-total-debt').textContent=fmt(totalDebt);
+  document.getElementById('dash-dc').textContent=debts.length+' deuda'+(debts.length!==1?'s':'');
+  document.getElementById('dash-available').textContent=fmt(available);
+  document.getElementById('dash-mins').textContent=fmt(totalMinPayments);
+  document.getElementById('dash-dti').textContent='DTI: '+fmtPct(dti);
+  document.getElementById('dash-tax-save').textContent=fmt(taxMonthly);
+  document.getElementById('dash-tax-sub').textContent=taxes.length+' obligación'+(taxes.length!==1?'es':'');
+  const el=document.getElementById('net-balance');
+  el.textContent=fmt(available);
+  el.className='amount '+(available>0?'positive':available<0?'negative':'zero');
+  document.getElementById('dash-income-list').innerHTML=!incomes.length?'<div class="empty-state">Sin ingresos</div>'
+    :[...incomes].sort((a,b)=>b.monthly-a.monthly).slice(0,4).map(i=>`<div class="list-item"><span class="item-name">${i.name}</span><span class="item-amount income-color">${fmt(i.monthly)}</span></div>`).join('');
+  document.getElementById('dash-expense-list').innerHTML=!expenses.length?'<div class="empty-state">Sin egresos</div>'
+    :[...expenses].sort((a,b)=>b.amount-a.amount).slice(0,4).map(e=>`<div class="list-item"><span class="item-name">${e.name}</span><span class="item-amount expense-color">${fmt(e.amount)}</span></div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  PAGAR HOY
+// ═══════════════════════════════════════════════════════
+function renderPagarHoy(){
+  const n=new Date();
+  document.getElementById('today-tag').textContent=`Día ${n.getDate()} · ${DIAS[n.getDay()]}`;
+  const c=document.getElementById('pagarhoy-content');
+  if(!debts.length&&!taxes.length){c.innerHTML='<div class="empty-state">Registra deudas con fechas para ver el análisis</div>';return;}
+  const critical=[],warning=[],cutSoon=[],upcoming=[],safe=[];
+  debts.forEach(d=>{const a=analyzeDebt(d);const o={d,a};
+    if(a.severity==='critical')critical.push(o);
+    else if(a.severity==='warning')warning.push(o);
+    else if(a.severity==='cut')cutSoon.push(o);
+    else if(a.severity==='upcoming')upcoming.push(o);
+    else safe.push(o);
+  });
+  document.getElementById('urgency-dot').style.display=(critical.length||warning.length)?'inline-block':'none';
+  document.getElementById('tax-dot').style.display=taxes.some(t=>daysUntilDate(t.month,t.day)<=60)?'inline-block':'none';
+  let html='';
+  if(critical.length){html+=divider('🚨 Acción inmediata');critical.forEach(({d,a})=>html+=buildCard(d,a,'p-critical','critical'));}
+  if(warning.length){html+=divider('⚠️ Esta semana');warning.forEach(({d,a})=>html+=buildCard(d,a,'p-warning','warning'));}
+  if(cutSoon.length){html+=divider('✂️ Corte inminente');cutSoon.forEach(({d,a})=>html+=buildCard(d,a,'p-info','corte-b'));}
+  if(upcoming.length){html+=divider('📅 Próximos 15 días');upcoming.forEach(({d,a})=>html+=buildCard(d,a,'p-info','ok'));}
+  if(safe.length){html+=divider('✅ Sin urgencia');safe.forEach(({d,a})=>html+=buildCard(d,a,'p-ok','ok'));}
+  if(taxes.length){html+=divider('🧾 Impuestos y obligaciones anuales');html+=buildTaxBlock();}
+  html+=buildVencimientosTable();
+  html+=buildRecomendacion(critical,warning,cutSoon);
+  c.innerHTML=html;
+}
+
+function buildTaxBlock(){
+  const taxMonthly=calcTaxMonthly();
+  const{available}=calcTotals();
+  let html=taxes.map(t=>{
+    const months=monthsUntilDate(t.month,t.day);
+    const days=daysUntilDate(t.month,t.day);
+    const monthly=t.amount/months;
+    const uc=days<=30?'var(--accent2)':days<=90?'var(--orange)':'#ff6bff';
+    const ul=days<=30?'🚨 MUY PRONTO':days<=90?'⚠️ PRÓXIMO':'📆 PLANIFICANDO';
+    return `<div class="priority-card p-tax">
+      <div class="pc-top"><span class="pc-name">${t.name}</span><span class="pc-badge tax-b">${ul}</span></div>
+      <div class="pc-body">Vence el <strong>${t.day} de ${MESES[t.month-1]}</strong> — faltan <span style="color:${uc};font-weight:600;">${days} días</span>.<br>Total: <strong>${fmt(t.amount)}</strong> · Meses: <strong>${months}</strong><br>👉 <strong>Aparta ${fmt(monthly)}/mes</strong> para llegar sin estrés.</div>
+      <div class="pc-footer">
+        <div class="pc-stat"><div class="psl">Total</div><div class="psv" style="color:#ff6bff;">${fmt(t.amount)}</div></div>
+        <div class="pc-stat"><div class="psl">Por mes</div><div class="psv" style="color:#ff6bff;">${fmt(monthly)}</div></div>
+        <div class="pc-stat"><div class="psl">Meses rest.</div><div class="psv">${months}</div></div>
+        <div class="pc-stat"><div class="psl">Días rest.</div><div class="psv" style="color:${uc};">${days}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  const canAfford=available>=taxMonthly;
+  html+=`<div class="tax-total-save" style="border-radius:10px;margin-bottom:4px;">
+    <div><div class="ttl">Total reserva fiscal recomendada / mes</div><div style="font-family:'DM Mono',monospace;font-size:0.59rem;color:${canAfford?'var(--green)':'var(--accent2)'};margin-top:2px;">${canAfford?`✅ Tu flujo lo permite (tienes ${fmt(available)} libre):`:`⚠️ Tu flujo libre (${fmt(available)}) no alcanza.`}</div></div>
+    <div class="ttv">${fmt(taxMonthly)}</div>
+  </div>`;
+  return html;
+}
+
+function analyzeDebt(d){
+  const dtp=d.dueDay!==null?daysUntilDay(d.dueDay):null;
+  const dtc=d.cutDay!==null?daysUntilDay(d.cutDay):null;
+  const mi=(d.rate/100/12)*d.balance;
+  const di=(d.rate/100/365)*d.balance;
+  let severity='safe',msgs=[],action='';
+  if(dtp!==null){
+    if(dtp===0){severity='critical';msgs.push(`<span class="hi-r">🚨 HOY vence el pago.</span> Paga ahora para evitar mora.`);action=`Pagar <strong>${fmt(d.minPay)}</strong> HOY.`;}
+    else if(dtp<=3){severity='critical';msgs.push(`<span class="hi-r">⚠️ ${dtp}d para el vencimiento</span> (día ${d.dueDay}).`);action=`Paga <strong>${fmt(d.minPay)}</strong> antes del día ${d.dueDay}. Los bancos tardan 1–2d.`;}
+    else if(dtp<=7){severity='warning';msgs.push(`<span class="hi-o">⏰ Vence en ${dtp} días</span> (día ${d.dueDay}).`);action=`Agenda pago de <strong>${fmt(d.minPay)}</strong> esta semana.`;}
+    else if(dtp<=15){severity='upcoming';msgs.push(`Vence en ${dtp} días (día ${d.dueDay}).`);action=`Sin urgencia. Ten ${fmt(d.minPay)} para el día ${d.dueDay}.`;}
+    else{msgs.push(`Próximo pago en ${dtp} días.`);action=`Pago: ${fmt(d.minPay)} el día ${d.dueDay}.`;}
+  }
+  if(dtc!==null){
+    if(dtc<=3){if(severity==='safe')severity='cut';msgs.push(`<span class="hi-b">✂️ Corte en ${dtc}d (día ${d.cutDay}).</span> Evita compras — se suman al próximo estado.`);if(!action)action=`No uses esta tarjeta ${dtc} días.`;}
+    else if(dtc<=7) msgs.push(`Corte en ${dtc} días (día ${d.cutDay}).`);
+  }
+  if(d.rate>36)msgs.push(`<span class="hi-r">Tasa muy alta: ${fmtPct(d.rate)}/año</span> — ${fmt(di)}/día en intereses.`);
+  else if(d.rate>20)msgs.push(`Tasa elevada: ${fmtPct(d.rate)}/año — ${fmt(di)}/día.`);
+  if(d.limit&&d.balance/d.limit>0.7)msgs.push(`<span class="hi-o">Utilización al ${(d.balance/d.limit*100).toFixed(0)}%.</span> Afecta tu score.`);
+  if(!action)action=dtp!==null?`Pago en ${dtp} días. Sin acción urgente.`:`Sin fechas configuradas.`;
+  return{severity,msgs,action,mi,di,dtp,dtc};
+}
+
+function buildCard(d,a,cc,bc){
+  const labels={critical:'🚨 URGENTE',warning:'⏰ ESTA SEMANA',cut:'✂️ CORTE PRÓXIMO',upcoming:'📅 PRÓXIMAMENTE',safe:'✅ AL DÍA'};
+  const body=a.msgs.length?a.msgs.map(m=>`• ${m}`).join('<br>'):'— Sin observaciones urgentes.';
+  return `<div class="priority-card ${cc}">
+    <div class="pc-top"><span class="pc-name">${d.name}</span><span class="pc-badge ${bc}">${labels[a.severity]||'AL DÍA'}</span></div>
+    <div class="pc-body">${body}${a.action?`<br><br>👉 <strong>Acción:</strong> ${a.action}`:''}</div>
+    <div class="pc-footer">
+      <div class="pc-stat"><div class="psl">Saldo</div><div class="psv" style="color:var(--accent)">${fmt(d.balance)}</div></div>
+      <div class="pc-stat"><div class="psl">Pago mín.</div><div class="psv">${fmt(d.minPay)}</div></div>
+      <div class="pc-stat"><div class="psl">Interés/mes</div><div class="psv" style="color:var(--accent2)">${fmt(a.mi)}</div></div>
+      <div class="pc-stat"><div class="psl">Tasa</div><div class="psv">${fmtPct(d.rate)}</div></div>
+      ${d.dueDay!==null?`<div class="pc-stat"><div class="psl">Vence día</div><div class="psv">${d.dueDay}</div></div>`:''}
+      ${d.cutDay!==null?`<div class="pc-stat"><div class="psl">Corte día</div><div class="psv">${d.cutDay}</div></div>`:''}
+    </div>
+  </div>`;
+}
+
+function buildVencimientosTable(){
+  const dr=debts.filter(d=>d.dueDay!==null).sort((a,b)=>daysUntilDay(a.dueDay)-daysUntilDay(b.dueDay))
+    .map(d=>{const dl=daysUntilDay(d.dueDay);const c=dl<=3?'var(--accent2)':dl<=7?'var(--orange)':'var(--muted)';return{name:d.name,dueStr:`Día ${d.dueDay} (${dl}d)`,cutStr:d.cutDay!==null?`Día ${d.cutDay}`:'—',balance:d.balance,minPay:d.minPay,rate:d.rate,days:dl,dueColor:c};});
+  const tr=taxes.map(t=>{const d=daysUntilDate(t.month,t.day);return{name:t.name,dueStr:`${t.day} ${MESES[t.month-1].slice(0,3)} (${d}d)`,cutStr:'Anual',balance:t.amount,minPay:t.amount/monthsUntilDate(t.month,t.day),rate:0,days:d,isTax:true};});
+  const rows=[...dr,...tr].sort((a,b)=>a.days-b.days);
+  if(!rows.length) return '';
+  return `${divider('📊 Tabla de vencimientos')}
+    <div style="overflow-x:auto;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;">
+      <table class="mini-table">
+        <thead><tr><th>Obligación</th><th>Próx. venc.</th><th>Corte/Ciclo</th><th>Monto</th><th>Pago/Reserva</th><th>Tasa</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+          <td style="font-weight:600">${r.name}${r.isTax?` <span style="color:#ff6bff;font-size:0.58rem;">[fiscal]</span>`:''}</td>
+          <td style="color:${r.dueColor||'#ff6bff'}">${r.dueStr}</td>
+          <td>${r.cutStr}</td>
+          <td style="color:var(--accent)">${fmt(r.balance)}</td>
+          <td>${fmt(r.minPay)}${r.isTax?'/mes':''}</td>
+          <td>${r.rate>0?fmtPct(r.rate):'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+}
+
+function buildRecomendacion(critical,warning,cutSoon){
+  const{available}=calcTotals();
+  const taxMonthly=calcTaxMonthly();
+  const totalU=[...critical,...warning].reduce((s,{d})=>s+d.minPay,0);
+  let a='';
+  if(critical.length){const ns=critical.map(({d})=>d.name).join(', ');a+=`<strong style="color:var(--accent2)">${critical.length} pago${critical.length!==1?'s':''} urgente${critical.length!==1?'s':''}</strong>: <strong>${ns}</strong>. Paga inmediatamente.<br><br>`;}
+  if(warning.length)a+=`<strong style="color:var(--orange)">${warning.length} pago${warning.length!==1?'s':''}</strong> vence${warning.length===1?'':'n'} esta semana.<br><br>`;
+  if(cutSoon.length){const ns=cutSoon.map(({d})=>d.name).join(', ');a+=`<strong style="color:var(--accent3)">Corte inminente</strong> en: <strong>${ns}</strong>. No uses estos plásticos.<br><br>`;}
+  if(taxes.length&&taxMonthly>0)a+=`Reserva <strong style="color:#ff6bff">${fmt(taxMonthly)}/mes</strong> para impuestos. Ya descontado del flujo libre.<br><br>`;
+  if(!critical.length&&!warning.length&&!cutSoon.length)a+=`<strong style="color:var(--green)">¡Estás al día!</strong> Aprovecha para pagar extra a la deuda con mayor tasa.<br><br>`;
+  if(totalU>0){a+=`Total urgente: <strong>${fmt(totalU)}</strong>. `;a+=available>=totalU?`Tienes <strong style="color:var(--green)">${fmt(available)}</strong> disponible.`:`<strong style="color:var(--accent2)">⚠️ Tu flujo (${fmt(available)}) no alcanza para los pagos urgentes (${fmt(totalU)}).</strong>`;}
+  return `${divider('💡 Plan de acción')}<div class="recom-box"><div class="rt">Hoy — ${new Date().getDate()} de ${MESES[new Date().getMonth()]}</div><div class="rb">${a}</div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ESTRATEGIA
+// ═══════════════════════════════════════════════════════
+function setStrategy(type){
+  currentStrategy=type;
+  document.getElementById('btn-snowball').classList.toggle('active',type==='snowball');
+  document.getElementById('btn-avalanche').classList.toggle('active',type==='avalanche');
+  saveData(); renderStrategy();
+}
+function renderStrategy(){
+  const{available,taxMonthly}=calcTotals();
+  const extra=Math.max(0,available)+(parseFloat(document.getElementById('extra-payment').value)||0);
+  document.getElementById('strat-tag').textContent='Extra: '+fmt(extra)+'/mes';
+  const c=document.getElementById('strategy-content');
+  if(!debts.length){c.innerHTML='<div class="empty-state">Agrega deudas para ver tu plan de ataque</div>';return;}
+  let sorted=[...debts].sort(currentStrategy==='snowball'?(a,b)=>a.balance-b.balance:(a,b)=>b.rate-a.rate);
+  const totalInt=debts.reduce((s,d)=>s+(d.rate/100/12)*d.balance,0);
+  let bal=sorted.map(d=>d.balance),rates=sorted.map(d=>d.rate/100/12),mins=sorted.map(d=>d.minPay);
+  let paid=new Array(sorted.length).fill(null);let m=0;const MAX=600;
+  while(bal.some(b=>b>0)&&m<MAX){
+    m++;let pool=extra;
+    for(let i=0;i<bal.length;i++){
+      if(bal[i]<=0){pool+=mins[i];continue;}
+      bal[i]+=bal[i]*rates[i];
+      if(i===bal.findIndex(b=>b>0)){const p=Math.min(bal[i],mins[i]+pool);pool=Math.max(0,p>mins[i]?pool-(p-mins[i]):pool);bal[i]-=p;}
+      else{bal[i]-=Math.min(bal[i],mins[i]);}
+      if(bal[i]<=0){bal[i]=0;if(!paid[i])paid[i]=m;}
+    }
+  }
+  const items=sorted.map((d,i)=>{
+    const mo=paid[i];const t=mo?(Math.floor(mo/12)>0?Math.floor(mo/12)+'a ':'')+(mo%12)+'m':'+50a';
+    return `<div class="strat-item"><div class="snum ${i===0?'first':''}">${i+1}</div><div class="sinfo"><div class="sn">${d.name}</div><div class="sd">Saldo: ${fmt(d.balance)} · ${fmtPct(d.rate)} · Mín: ${fmt(d.minPay)}</div></div><div class="samt">${t}</div></div>`;
+  }).join('');
+  const tm=m>=MAX?null:m;
+  const tt=tm?(Math.floor(tm/12)>0?Math.floor(tm/12)+' años ':'')+(tm%12)+' meses':'Más de 50 años';
+  const taxNote=taxMonthly>0?`<br><br>💡 Reservas <strong>${fmt(taxMonthly)}/mes</strong> para impuestos — ya descontado de tu flujo.`:'';
+  c.innerHTML=`<div class="strategy-box">
+    <div class="strat-title"><div class="dot" style="background:var(--accent)"></div>Orden de ataque — ${currentStrategy==='snowball'?'Snowball ❄️':'Avalanche 🌊'}</div>
+    <p style="font-family:'DM Mono',monospace;font-size:0.67rem;color:var(--muted);margin-bottom:11px;line-height:1.6">${currentStrategy==='snowball'?'Menor saldo primero — victorias rápidas mantienen la motivación.':'Mayor tasa primero — pagas menos dinero en total.'}</p>
+    <div>${items}</div>
+  </div>
+  <div class="recom-box">
+    <div class="rt">📊 Resumen</div>
+    <div class="rb">Con <strong>${fmt(extra)}/mes extra</strong> estarás libre en <strong>${tt}</strong>.<br><br>Pagas <strong>${fmt(totalInt)}/mes en intereses</strong>.${taxNote}<br><br>${extra<1?`⚠️ <strong>Sin excedente.</strong> Reduce egresos.`:`✅ Tienes <strong>${fmt(extra)}</strong> para atacar deudas.`}</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UPDATE ALL
+// ═══════════════════════════════════════════════════════
+function updateAll(){
+  renderDashboard();
+  document.getElementById('urgency-dot').style.display=debts.some(d=>d.dueDay!==null&&daysUntilDay(d.dueDay)<=7)?'inline-block':'none';
+  document.getElementById('tax-dot').style.display=taxes.some(t=>daysUntilDate(t.month,t.day)<=60)?'inline-block':'none';
+}
+
+function renderAll(){
+  renderIncomeList(); renderExpenseList(); renderDebtList();
+  renderTaxList(); renderTaxSummary(); renderDashboard();
+  document.getElementById('urgency-dot').style.display=debts.some(d=>d.dueDay!==null&&daysUntilDay(d.dueDay)<=7)?'inline-block':'none';
+  document.getElementById('tax-dot').style.display=taxes.some(t=>daysUntilDate(t.month,t.day)<=60)?'inline-block':'none';
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT — cargar datos y arrancar
+// ═══════════════════════════════════════════════════════
+loadData();
+renderAll();
+</script>
+</body>
+</html>
